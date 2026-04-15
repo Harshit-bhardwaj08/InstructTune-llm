@@ -1,0 +1,77 @@
+# ================================================================
+#  InstructTune-LLM
+#  Training Configuration
+#  ----------------------------------------------------------------
+#  All experiment settings live here. Nothing is hardcoded in the
+#  Python scripts — this file is the single source of truth for
+#  every hyperparameter and path.
+# ================================================================
+
+# ── Base Model ──────────────────────────────────────────────────
+model:
+  hub_id: ""                        # Required. E.g. "mistralai/Mistral-7B-v0.1"
+                                    #           or "meta-llama/Llama-2-7b-hf"
+  load_8bit: true                   # 8-bit quantisation via bitsandbytes (saves ~50% VRAM)
+  precision_dtype: "float16"        # float16 | bfloat16 | float32
+  trust_remote_code: false          # set true only for models with custom architecture code
+
+# ── Output Directories ──────────────────────────────────────────
+output:
+  checkpoint_dir: "./outputs/checkpoints"   # Trainer saves intermediate checkpoints here
+  adapter_dir:    "./outputs/lora_adapter"  # Final LoRA weights directory
+  log_dir:        "./outputs/logs"          # TensorBoard / logging output
+
+# ── Dataset ─────────────────────────────────────────────────────
+dataset:
+  file_path: "./data/instruction_dataset.json"   # Local .json / .jsonl or HF Hub ID
+  column_map:                                    # Map schema keys to JSON field names
+    task:     "task"
+    context:  "context"
+    response: "response"
+  val_set_size: 200                              # Rows held out for validation (0 = none)
+  seed: 42                                       # Reproducibility seed for data shuffling
+
+# ── Prompt Format ───────────────────────────────────────────────
+prompt:
+  format_name: "domain_instruct"    # Key from FORMAT_CATALOG in src/prompt_builder.py
+                                    # Options: domain_instruct | chat_style |
+                                    #          research_notes | code_instruct
+
+# ── LoRA Adapter ────────────────────────────────────────────────
+adapter:
+  rank: 16                          # Intrinsic rank r — higher = more capacity, more memory
+  alpha: 32                         # Scaling factor; effective scale = alpha / rank
+  dropout: 0.05                     # Dropout applied inside adapter layers for regularisation
+  target_modules:                   # Which linear projections receive adapters
+    - "q_proj"                      # Query projection
+    - "k_proj"                      # Key projection
+    - "v_proj"                      # Value projection
+    - "o_proj"                      # Output projection
+  bias_update: "none"               # none | all | lora_only
+
+# ── Training Hyperparameters ────────────────────────────────────
+training:
+  target_batch_size: 128            # Logical batch = per_device_batch × grad_accumulation
+  per_device_batch: 4               # Micro-batch processed per GPU per step
+  total_epochs: 3
+  peak_lr: 2.0e-4                   # Peak learning rate (cosine schedule default)
+  lr_schedule: "cosine"             # cosine | linear | constant | constant_with_warmup
+  warmup_steps: 100                 # Linear warmup period at run start
+  token_length_cap: 512             # Max tokens per sample (longer sequences are truncated)
+  response_only_loss: true          # true = loss computed only over response tokens
+  append_eos: true                  # Append </s> EOS token to every training sequence
+  group_by_length: true             # Bucket similar-length sequences to reduce padding waste
+  mixed_precision: "fp16"           # fp16 | bf16 | no
+  optimiser: "adamw_torch"          # adamw_torch | adamw_bnb_8bit | adafactor
+  save_every_n_steps: 200           # Checkpoint save frequency (steps)
+  eval_every_n_steps: 200           # Validation evaluation frequency (steps)
+  keep_n_checkpoints: 3             # How many rolling checkpoints to retain on disk
+  resume_from_checkpoint: null      # Path to an existing checkpoint, or null
+
+# ── Experiment Tracking (Weights & Biases) ──────────────────────
+wandb:
+  enabled: false
+  project: "instruct-tune-llm"      # W&B project name
+  run_label: ""                     # Human-readable run identifier (leave blank for auto)
+  watch_gradients: ""               # gradients | all | (empty = disabled)
+  upload_model: false               # Push model artifact to W&B after training

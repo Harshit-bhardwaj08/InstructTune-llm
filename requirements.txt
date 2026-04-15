@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────
+#  InstructTune-LLM  |  Python Dependencies
+#  Install with: pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────────
+
+# ── Core deep learning stack ─────────────────────────────────────
+torch>=2.1.0
+transformers>=4.38.0
+datasets>=2.18.0
+accelerate>=0.28.0
+peft>=0.9.0
+
+# ── Quantisation support (8-bit and 4-bit via NF4) ───────────────
+bitsandbytes>=0.43.0
+
+# ── Configuration parsing ────────────────────────────────────────
+pyyaml>=6.0
+
+# ── Tokenizer support for broad model family coverage ────────────
+sentencepiece>=0.2.0
+protobuf>=4.25.0
+
+# ── Experiment tracking (optional — only needed when wandb.enabled: true) ──
+wandb>=0.16.0
+
+# ── Code quality tooling (development only) ──────────────────────
+black>=24.0.0
+isort>=5.13.0

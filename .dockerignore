@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────
+#  InstructTune-LLM  |  .dockerignore
+#  Prevents unnecessary files from being sent to the build context,
+#  keeping image builds fast and the final image lean.
+# ─────────────────────────────────────────────────────────────────
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python byte-code and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Build / dist artefacts
+*.egg-info/
+dist/
+build/
+
+# Jupyter notebooks (not needed in the image)
+*.ipynb
+.ipynb_checkpoints/
+
+# Output directories (checkpoints, adapters, logs)
+# These are mounted as volumes at runtime — don't bake them in.
+outputs/
+
+# HuggingFace / model caches (mounted as a named volume)
+.cache/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Version control
+.git/
+.github/
+
+# Environment files (may contain secrets)
+.env
+.env.*
+
+# OS-generated junk
+.DS_Store
+Thumbs.db
+
+# Docker compose override files used locally
+docker-compose.override.yml

@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────────────
+#  InstructTune-LLM  |  .gitignore
+# ─────────────────────────────────────────────────────────────────
+
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.Python
+
+# ── Virtual environments ─────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Jupyter ──────────────────────────────────────────────────────
+*.ipynb
+.ipynb_checkpoints/
+
+# ── ML outputs (large — never commit these) ───────────────────────
+outputs/
+wandb/
+.cache/
+
+# ── Secrets / environment files ──────────────────────────────────
+.env
+.env.*
+!.env.example          # keep the template in version control
+
+# ── IDE / editor ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS junk ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Docker local overrides ───────────────────────────────────────
+docker-compose.override.yml

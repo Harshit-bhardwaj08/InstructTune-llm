@@ -1,0 +1,103 @@
+# ─────────────────────────────────────────────────────────────────
+#  InstructTune-LLM  |  docker-compose.yml
+#
+#  Two services:
+#    train   — runs the full LoRA fine-tuning pipeline
+#    infer   — interactive CLI inference REPL
+#
+#  Usage:
+#    docker compose run --rm train          # start training
+#    docker compose run --rm infer          # start inference REPL
+#    docker compose run --rm infer \
+#      --task "Explain LoRA" --context ""   # single-shot inference
+#
+#  Required env var:
+#    BASE_MODEL   — HuggingFace model ID, e.g. meta-llama/Llama-2-7b-hf
+#
+#  Optional env vars (W&B tracking):
+#    WANDB_API_KEY
+# ─────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+
+  # ── Training service ────────────────────────────────────────────
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    image: instruct-tune-llm:latest
+    container_name: instruct_tune_train
+    shm_size: "64gb"
+
+    environment:
+      - BASE_MODEL=${BASE_MODEL:-}                 # required: set in .env or shell
+      - WANDB_API_KEY=${WANDB_API_KEY:-}           # optional: W&B experiment tracking
+      - HF_HOME=/workspace/.cache/huggingface      # cache inside the volume
+      - TRANSFORMERS_CACHE=/workspace/.cache/huggingface/hub
+
+    command: >
+      python3.10 -m src.train_lora
+      --config configs/training_config.yaml
+
+    volumes:
+      - hf_cache:/workspace/.cache/huggingface     # persists model weights across runs
+      - ./outputs:/workspace/outputs               # persists checkpoints + adapters
+      - ./data:/workspace/data:ro                  # read-only dataset mount
+      - ./configs:/workspace/configs:ro            # read-only config mount
+
+    restart: "no"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Inference service ───────────────────────────────────────────
+  infer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    image: instruct-tune-llm:latest
+    container_name: instruct_tune_infer
+    stdin_open: true                               # keeps REPL alive
+    tty: true
+
+    environment:
+      - BASE_MODEL=${BASE_MODEL:-}
+      - HF_HOME=/workspace/.cache/huggingface
+      - TRANSFORMERS_CACHE=/workspace/.cache/huggingface/hub
+
+    # Override this command to pass --task / --context flags for single-shot mode
+    command: >
+      python3.10 -m src.inference
+      --base_model ${BASE_MODEL}
+      --adapter_path /workspace/outputs/lora_adapter
+
+    volumes:
+      - hf_cache:/workspace/.cache/huggingface
+      - ./outputs:/workspace/outputs:ro            # read-only: load adapter only
+      - ./configs:/workspace/configs:ro
+
+    restart: "no"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+# ── Named volumes ───────────────────────────────────────────────
+volumes:
+  hf_cache:
+    name: instruct_tune_hf_cache       # shared HuggingFace model cache
